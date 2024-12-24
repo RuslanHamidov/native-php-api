@@ -1,0 +1,47 @@
+services:
+  app:
+    build: .
+    container_name: php-app
+    volumes:
+      - ./src:/var/www/html
+    networks:
+      - app-network
+
+  webserver:
+    image: nginx:latest
+    container_name: nginx-webserver
+    volumes:
+      - ./src:/var/www/html
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf  # Ensure default.conf points to the correct file
+    ports:
+      - "80:80"  # Map port 80 on the host to port 80 on the container
+    networks:
+      - app-network
+
+  db:
+    image: mysql:8.0
+    container_name: mysql-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    networks:
+      - app-network
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: mysql-db  # Name of the MySQL container
+      MYSQL_ROOT_PASSWORD: rootpassword  # Root password set for MySQL
+    ports:
+      - "8081:80"  # Expose phpMyAdmin on port 8081 (you can change the port if needed)
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
