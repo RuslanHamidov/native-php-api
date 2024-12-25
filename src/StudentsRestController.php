@@ -37,8 +37,24 @@ class StudentsRestController
 
     public function list()
     {
-        $query = $this->pdo->query("SELECT * FROM `students` LIMIT 10");
-        return $query->fetchAll(PDO::FETCH_ASSOC);
+        $page = $_GET['page'] ?? 1;
+        $page_size = 10;
+        $offset = ($page - 1) * $page_size;
+
+        $query = $this->pdo->prepare("SELECT * FROM `students` LIMIT :limit OFFSET :offset");
+        $query->bindValue("limit", $page_size, PDO::PARAM_INT);
+        $query->bindValue("offset", $offset, PDO::PARAM_INT);
+        $query->execute();
+        
+        $items = $query->fetchAll(PDO::FETCH_ASSOC);
+
+
+        $query = $this->pdo->query("SELECT count(*) FROM `students`");
+        $count = $query->fetchColumn();
+        return [
+            "items" => $items,
+            "count" => $count
+        ];
     }
 
     public function create()
@@ -46,14 +62,14 @@ class StudentsRestController
         $json_message = file_get_contents('php://input');
         $data = json_decode($json_message, true, 512, JSON_THROW_ON_ERROR);
         
-        $firstname = $data['firstname'] ?? '';
-        $lastname = $data['lastname'] ?? '';
-        $sex = $data['sex'] ?? '';
+        $name = $data['name'] ?? '';
+        $surname = $data['surname'] ?? '';
+        $gender = $data['gender'] ?? '';
         
-        $query = $this->pdo->prepare("INSERT INTO students(firstname, lastname, sex) VALUES (:firstname, :lastname, :sex)");
-        $query->bindValue("firstname", $firstname);
-        $query->bindValue("lastname", $lastname);
-        $query->bindValue("sex", $sex);
+        $query = $this->pdo->prepare("INSERT INTO students(name, surname, gender) VALUES (:name, :surname, :gender)");
+        $query->bindValue("name", $name);
+        $query->bindValue("surname", $surname);
+        $query->bindValue("gender", $gender);
 
         $query->execute();
         $id = $this->pdo->lastInsertId();
@@ -85,11 +101,11 @@ class StudentsRestController
         $query->execute();
         $student = $query->fetch(PDO::FETCH_ASSOC);
 
-        $query = $this->pdo->prepare("UPDATE students SET firstname=:firstname, lastname=:lastname, sex=:sex WHERE id = :id");
+        $query = $this->pdo->prepare("UPDATE students SET firstname=:firstname, surname=:surname, gender=:gender WHERE id = :id");
         $query->bindValue("id", $id);
         $query->bindValue("firstname", $data['firstname'] ?? $student['firstname']);
-        $query->bindValue("lastname", $data['lastname'] ?? $student['lastname']);
-        $query->bindValue("sex", $data['sex'] ?? $student['sex']);
+        $query->bindValue("surname", $data['surname'] ?? $student['surname']);
+        $query->bindValue("gender", $data['gender'] ?? $student['gender']);
         $query->execute();
 
         return ['message' => 'Student updated', 'id' => $id];
